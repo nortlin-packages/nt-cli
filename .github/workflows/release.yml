@@ -1,0 +1,69 @@
+name: Build and Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        include:
+          - os: ubuntu-latest
+            target: linux-x64
+            ext: ''
+          - os: windows-latest
+            target: win-x64
+            ext: '.exe'
+          - os: macos-latest
+            target: macos-x64
+            ext: ''
+    
+    runs-on: ${{ matrix.os }}
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        
+    - name: Install dependencies
+      run: npm ci
+      
+    - name: Build executable
+      run: npx pkg . --target node20-${{ matrix.target }} --output dist/nt-${{ matrix.target }}${{ matrix.ext }}
+      
+    - name: Upload artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: nt-${{ matrix.target }}
+        path: dist/nt-${{ matrix.target }}${{ matrix.ext }}
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Download all artifacts
+      uses: actions/download-artifact@v4
+      with:
+        path: dist/
+        merge-multiple: true
+        
+    - name: List files
+      run: ls -la dist/
+      
+    - name: Create Release
+      uses: softprops/action-gh-release@v1
+      if: startsWith(github.ref, 'refs/tags/')
+      with:
+        files: dist/*
+        generate_release_notes: true
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

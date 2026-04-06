@@ -35,12 +35,14 @@ esac
 PLATFORM=$(uname -s | tr '[:upper:]' '[:lower:]')
 case $PLATFORM in
     linux) PLATFORM="linux" ;;
-    darwin) PLATFORM="darwin" ;;
+    darwin) PLATFORM="macos" ;;
     *) PLATFORM="linux" ;;
 esac
 
 info "Instalador nt-cli"
 info "=================="
+info ""
+info "Plataforma detectada: $PLATFORM"
 info ""
 
 # Create directories
@@ -65,71 +67,24 @@ fi
 
 info "Versao encontrada: $VERSION"
 
-# Try to download binary release
-ASSET_NAME="nt-cli-$PLATFORM-$ARCH.tar.gz"
+# Download executable
+info "Baixando $VERSION..."
+ASSET_NAME="nt-$PLATFORM-x64"
 DOWNLOAD_URL="https://github.com/$REPO/releases/download/$VERSION/$ASSET_NAME"
 
-info "Tentando baixar binario..."
-
-if curl -fsSL -o "$TEMP_DIR/$ASSET_NAME" "$DOWNLOAD_URL" 2>/dev/null; then
-    info "Baixando binario..."
-    tar -xzf "$TEMP_DIR/$ASSET_NAME" -C "$INSTALL_DIR"
+if command -v curl &> /dev/null; then
+    curl -fsSL -o "$BIN_DIR/nt" "$DOWNLOAD_URL"
+elif command -v wget &> /dev/null; then
+    wget -q -O "$BIN_DIR/nt" "$DOWNLOAD_URL"
 else
-    # Fallback: install via node
-    info "Binario nao encontrado. Instalando via node..."
-    
-    # Check if node is installed
-    if ! command -v node &> /dev/null; then
-        error "Node.js nao encontrado. Por favor instale o Node.js primeiro:"
-        info "  https://nodejs.org/"
-        exit 1
-    fi
-    
-    NODE_VERSION=$(node --version)
-    info "Node.js encontrado: $NODE_VERSION"
-    
-    # Download source
-    info "Baixando codigo fonte..."
-    ZIP_URL="https://github.com/$REPO/archive/refs/heads/main.zip"
-    
-    if command -v curl &> /dev/null; then
-        curl -fsSL -o "$TEMP_DIR/nt-cli.zip" "$ZIP_URL"
-    elif command -v wget &> /dev/null; then
-        wget -q -O "$TEMP_DIR/nt-cli.zip" "$ZIP_URL"
-    else
-        error "curl ou wget necessarios para download"
-        exit 1
-    fi
-    
-    info "Extraindo..."
-    if command -v unzip &> /dev/null; then
-        unzip -q "$TEMP_DIR/nt-cli.zip" -d "$TEMP_DIR"
-    else
-        error "unzip necessario para extrair"
-        exit 1
-    fi
-    
-    SOURCE_DIR=$(find "$TEMP_DIR" -maxdepth 1 -type d -name "nt-cli*" | head -1)
-    
-    if [ -z "$SOURCE_DIR" ]; then
-        error "Nao foi possivel encontrar o codigo fonte extraido"
-        exit 1
-    fi
-    
-    info "Instalando dependencias..."
-    (cd "$SOURCE_DIR" && npm install --production)
-    
-    info "Copiando arquivos..."
-    cp -r "$SOURCE_DIR"/* "$INSTALL_DIR/"
+    error "curl ou wget necessarios para download"
+    exit 1
 fi
 
-# Create wrapper script
-cat > "$BIN_DIR/nt" << 'EOF'
-#!/bin/bash
-node "$HOME/.nt/bin/nt.js" "$@"
-EOF
-
+# Make executable
 chmod +x "$BIN_DIR/nt"
+
+info "Extraindo..."
 
 info ""
 success "nt-cli $VERSION instalado com sucesso!"
@@ -164,8 +119,6 @@ info "  nt install sdk-auth"
 info ""
 
 # Test installation
-if command -v node &> /dev/null; then
-    if node "$INSTALL_DIR/bin/nt.js" --help &> /dev/null || true; then
-        success "Instalacao verificada com sucesso!"
-    fi
+if "$BIN_DIR/nt" list &> /dev/null; then
+    success "Instalacao verificada com sucesso!"
 fi
