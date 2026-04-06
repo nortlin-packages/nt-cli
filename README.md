@@ -14,6 +14,18 @@ irm https://raw.githubusercontent.com/nortlin-packages/nt-cli/main/install.ps1 |
 curl -fsSL https://raw.githubusercontent.com/nortlin-packages/nt-cli/main/install.sh | bash
 ```
 
+## Desinstalação
+
+### Windows (PowerShell)
+```powershell
+irm https://raw.githubusercontent.com/nortlin-packages/nt-cli/main/uninstall.ps1 | iex
+```
+
+### Linux / macOS
+```bash
+curl -fsSL https://raw.githubusercontent.com/nortlin-packages/nt-cli/main/uninstall.sh | bash
+```
+
 ## Instalação Manual
 
 ### Via npm
